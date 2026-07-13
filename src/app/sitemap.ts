@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/site";
+import { buildCanonicalUrl } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: `${getSiteUrl()}/order-medicine/cal-123`,
-      lastModified: new Date("2025-11-02"),
-      changeFrequency: "weekly",
+      url: buildCanonicalUrl("/order-medicine/cal-360-tab-10-tab-cipla-ltd-sx6r74"),
+      lastModified: new Date(),
+      changeFrequency: "daily",
       priority: 0.9,
     },
   ];

@@ -9,6 +9,16 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+
+async redirects() {
+    return [
+      {
+        source: "/order-medicine/:slug/",
+        destination: "/order-medicine/:slug",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
