@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { SITE_URL } from "@/lib/site";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: "SastaSundar PDP SEO Demo",
-  description: "SEO friendly PDP demo using Next.js",
+  title: "SastaSundar",
+  description: "SastaSundar SEO Msite",
 };
 
 export default function RootLayout({
@@ -14,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
