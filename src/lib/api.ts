@@ -1,5 +1,5 @@
 import pdpResponse from "../../public/data/pdp_response.json";
-
+import { cache } from "react";
 /*export async function getProductBySlug(slug: string) {
   const product = pdpResponse.product?.[0];
 
@@ -131,18 +131,46 @@ function findFirstObject(input: unknown): Record<string, unknown> {
 
   const root = input as Record<string, unknown>;
 
+  if (Array.isArray(root.product) && root.product.length > 0) {
+    const firstProduct = root.product[0];
+
+    if (firstProduct && typeof firstProduct === "object") {
+      const firstProductObj = firstProduct as Record<string, unknown>;
+
+      if (
+        firstProductObj.details &&
+        typeof firstProductObj.details === "object"
+      ) {
+        return firstProductObj.details as Record<string, unknown>;
+      }
+
+      return firstProductObj;
+    }
+  }
+
+  if (Array.isArray(root.data) && root.data.length > 0) {
+    const firstData = root.data[0];
+
+    if (firstData && typeof firstData === "object") {
+      return firstData as Record<string, unknown>;
+    }
+  }
+
   const candidates = [
+    root.details,
     root.data,
-    root.product,
     root.productData,
     root.result,
     root.response,
-    root.details,
     root,
   ];
 
   for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      !Array.isArray(candidate)
+    ) {
       return candidate as Record<string, unknown>;
     }
   }
@@ -194,6 +222,18 @@ function normalizeFaqs(product: Record<string, unknown>) {
   }[];
 }
 
+function calculateSellingPriceFromDiscount(
+  mrp: number | null,
+  discountPercent: number | null
+) {
+  if (!mrp || !discountPercent) {
+    return null;
+  }
+
+  const price = mrp - (mrp * discountPercent) / 100;
+  return Number(price.toFixed(2));
+}
+
 function normalizeProductResponse(
   rawResponse: unknown,
   slug: string,
@@ -202,8 +242,9 @@ function normalizeProductResponse(
   const product = findFirstObject(rawResponse);
 
   const name = getStringValue(
-    product.productName,
+    product.DisplayName,
     product.ProductName,
+    product.productName,
     product.name,
     product.title,
     product.item_name,
@@ -212,8 +253,9 @@ function normalizeProductResponse(
   );
 
   const manufacturer = getStringValue(
-    product.manufacturer,
+    product.MfgGroup,
     product.Manufacturer,
+    product.manufacturer,
     product.manufacturerName,
     product.company,
     product.companyName,
@@ -222,10 +264,14 @@ function normalizeProductResponse(
   );
 
   const composition = getStringValue(
-    product.composition,
     product.Composition,
+    product.composition,
+    product.SaltComposition,
     product.saltComposition,
     product.salt_composition,
+    product.SaltName,
+    product.saltName,
+    product.Strength,
     product.packSize,
     product.pack_size
   );
@@ -247,18 +293,24 @@ function normalizeProductResponse(
     shortDescription
   );
 
-  const price = getNumberValue(
-    product.price,
-    product.sellingPrice,
-    product.selling_price,
-    product.finalPrice,
-    product.discountedPrice,
-    product.offerPrice
+  // const price = getNumberValue(
+  //   product.price,
+  //   product.sellingPrice,
+  //   product.selling_price,
+  //   product.finalPrice,
+  //   product.discountedPrice,
+  //   product.offerPrice
+  // );
+
+  // const mrp = getNumberValue(product.mrp, product.MRP, product.marketPrice);
+  const mrp = getNumberValue(
+    product.MRP,
+    product.mrp,
+    product.marketPrice
   );
 
-  const mrp = getNumberValue(product.mrp, product.MRP, product.marketPrice);
-
   const imageUrl = getStringValue(
+    product.ProductImage,
     product.imageUrl,
     product.image,
     product.productImage,
@@ -312,6 +364,29 @@ function normalizeProductResponse(
     `Buy ${name} online at SastaSundar. Check price, composition, manufacturer and product details.`
   );
 
+  const discountPercent = getNumberValue(
+    product.CashDisc,
+    product.cashDisc,
+    product.discount,
+    product.discountPercent
+  );
+
+  const apiSellingPrice = getNumberValue(
+    product.price,
+    product.sellingPrice,
+    product.selling_price,
+    product.finalPrice,
+    product.discountedPrice,
+    product.offerPrice
+  );
+
+  const calculatedSellingPrice = calculateSellingPriceFromDiscount(
+    mrp,
+    discountPercent
+  );
+
+  const price = apiSellingPrice || calculatedSellingPrice;
+
   return {
     productId,
     slug,
@@ -346,6 +421,16 @@ export async function getProductDetail({
   if (!apiUrl) {
     throw new Error("PRODUCT_DETAIL_API_URL is missing");
   }
+
+  console.log("PRODUCT DETAIL API START", {
+    productId,
+    slug,
+    pincode,
+    warehouseId,
+    apiUrl,
+  });
+
+  console.time(`PRODUCT_DETAIL_API_${productId}`);
 
   const body = new URLSearchParams({
     deviceId: DEFAULT_DEVICE_ID,
@@ -410,6 +495,15 @@ export async function getProductDetail({
 
   const responseText = await response.text();
 
+  console.log("PRODUCT DETAIL API RESPONSE", {
+    productId,
+    slug,
+    status: response.status,
+    ok: response.ok,
+    responseLength: responseText.length,
+    preview: responseText.substring(0, 300),
+  });
+
   if (!response.ok) {
     console.error("Product detail API failed:", {
       status: response.status,
@@ -427,6 +521,20 @@ export async function getProductDetail({
     console.error("Invalid product detail JSON:", responseText);
     throw new Error("Product detail API returned invalid JSON");
   }
+  
+  const normalizedProduct = normalizeProductResponse(json, slug, productId);
+  console.log("NORMALIZED PRODUCT", {
+    name: normalizedProduct.name,
+    manufacturer: normalizedProduct.manufacturer,
+    mrp: normalizedProduct.mrp,
+    price: normalizedProduct.price,
+    composition: normalizedProduct.composition,
+    imageUrl: normalizedProduct.imageUrl,
+  });
 
-  return normalizeProductResponse(json, slug, productId);
+  return normalizedProduct;
+
+  // return normalizeProductResponse(json, slug, productId);
 }
+
+export const getCachedProductDetail = cache(getProductDetail);

@@ -1,11 +1,10 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import Breadcrumb from "@/components/Breadcrumb";
-import InternalLinks from "@/components/InternalLinks";
+import MsiteHeader from "@/components/MsiteHeader";
 import ProductHero from "@/components/ProductHero";
 import ProductInfo from "@/components/ProductInfo";
+import ProductTrustInfo from "@/components/ProductTrustInfo";
 import SeoContent from "@/components/SeoContent";
-import SeoRequirementPanel from "@/components/SeoRequirementPanel";
-import { getProductDetail, getProductIdFromSlug } from "@/lib/api";
+import { getCachedProductDetail, getProductIdFromSlug } from "@/lib/api";
 import {
   buildNoIndexMetadata,
   buildPdpMetadata,
@@ -27,7 +26,7 @@ export async function generateMetadata({ params }: PageProps) {
   const productId = getProductIdFromSlug(normalizedSlug);
 
   try {
-    const product = await getProductDetail({
+    const product = await getCachedProductDetail({
       productId,
       slug: normalizedSlug,
     });
@@ -52,7 +51,7 @@ export default async function ProductPage({ params }: PageProps) {
   let product;
 
   try {
-    product = await getProductDetail({
+    product = await getCachedProductDetail({
       productId,
       slug: normalizedSlug,
     });
@@ -66,21 +65,16 @@ export default async function ProductPage({ params }: PageProps) {
   }
 
   return (
-    <main className="pdp-page">
+    <main className="msite-page">
       <SeoContent product={product} />
 
-      <Breadcrumb
-        productName={product.name}
-        categoryName={product.categoryName}
-      />
+      <MsiteHeader />
 
       <ProductHero product={product} />
 
+      <ProductTrustInfo />
+
       <ProductInfo product={product} />
-
-      <InternalLinks product={product} />
-
-      <SeoRequirementPanel />
     </main>
   );
 }

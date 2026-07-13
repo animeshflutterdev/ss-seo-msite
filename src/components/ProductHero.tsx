@@ -6,63 +6,72 @@ type ProductHeroProps = {
 };
 
 export default function ProductHero({ product }: ProductHeroProps) {
+  const productImage = product.imageUrl || "/images/medicine-placeholder.png";
+
+  const price = product.price ?? 176.3;
+  const mrp = product.mrp ?? 215;
+
+  const discount =
+    mrp && price && mrp > price
+      ? Math.round(((mrp - price) / mrp) * 100)
+      : 0;
+
+  const perUnitPrice =
+    price && product.name
+      ? `₹ 11.75/Tablet (inclusive of all taxes)`
+      : "Inclusive of all taxes";
+
   return (
-    <section className="pdp-hero">
-      <div className="product-image-box">
-        {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.imageAlt || product.name}
-            width={96}
-            height={96}
-            loading="eager"
-            fetchPriority="high"
-          />
-        ) : (
-          <Image
-            src="/images/medicine-placeholder.png"
-            alt={product.name}
-            width={96}
-            height={96}
-            loading="eager"
-            fetchPriority="high"
-          />
-        )}
+    <section className="product-top">
+      <div className="product-image-area">
+        <Image
+          src={productImage}
+          alt={product.imageAlt || product.name}
+          width={220}
+          height={220}
+          loading="eager"
+          fetchPriority="high"
+          className="product-main-image"
+        />
       </div>
 
-      <div className="product-hero-content">
-        <h1>{product.name}</h1>
+      <section className="product-summary-card">
+        <div className="product-title-row">
+          <div>
+            <h1>{product.name}</h1>
 
-        {product.shortDescription && (
-          <p className="short-description">{product.shortDescription}</p>
-        )}
+            <p className="brand-name">
+              By {product.manufacturer || product.brandName || "SastaSundar"}
+            </p>
+          </div>
 
-        {product.composition && (
-          <p className="product-meta">
-            <strong>Composition:</strong> {product.composition}
-          </p>
-        )}
-
-        {product.manufacturer && (
-          <p className="product-meta">
-            <strong>Manufacturer:</strong> {product.manufacturer}
-          </p>
-        )}
-
-        <div className="price-row">
-          {product.price !== null && (
-            <span className="price">₹{product.price}</span>
-          )}
-
-          {product.mrp !== null && product.mrp !== product.price && (
-            <span className="mrp">MRP ₹{product.mrp}</span>
-          )}
+          <div className="rx-badge" aria-label="Prescription required">
+            ℞
+          </div>
         </div>
 
-        <p className={product.inStock ? "stock in-stock" : "stock out-stock"}>
-          {product.inStock ? "In stock" : "Out of stock"}
-        </p>
-      </div>
+        <div className="price-action-row">
+          <div className="price-block">
+            <div className="price-line">
+              <span className="selling-price">₹{price}</span>
+
+              {mrp && mrp > price && (
+                <span className="mrp-price">₹{mrp}</span>
+              )}
+
+              {discount > 0 && (
+                <span className="discount-badge">{discount}% Off</span>
+              )}
+            </div>
+
+            <p className="unit-price">{perUnitPrice}</p>
+          </div>
+
+          <button className="add-button" type="button">
+            ADD
+          </button>
+        </div>
+      </section>
     </section>
   );
 }
